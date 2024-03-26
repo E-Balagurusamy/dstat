@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <title>DSTAT (Custom)</title>
+   <style>
+      html,
+      body {
+         height: 100%;
+         margin: 0;
+         font-family: Arial, sans-serif;
+      }
+      body {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         flex-direction: column;
+         background-color: #f0f0f0;
+      }
+      #chart-container {
+         width: 80%;
+         margin-top: 2em;
+         background-color: #fff;
+         border-radius: 8px;
+         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      #info {
+         margin-top: 1em;
+         text-align: center;
+         font-size: 16px;
+         color: #666;
+      }
+   </style>
+</head>
+<body>
+   <div id="chart-container">
+      <h2 id="info">Live Layer 7 DSTAT (Custom)</h2>
+      <div id="chart"></div>
+   </div>
+   <script src="https://code.highcharts.com/highcharts.js"></script>
+   <script src="https://code.highcharts.com/modules/exporting.js"></script>
+   <script>
+      window.previous = 0;
+      window.hajime = true;
+      window.onload = () => {
+         let info = document.getElementById("info");
+
+         Highcharts.createElement('link', {
+            href: '//fonts.googleapis.com/css?family=Roboto:400,700',
+            rel: 'stylesheet',
+            type: 'text/css',
+         }, null, document.getElementsByTagName('head')[0]);
+
+         var options = {
+            chart: {
+               type: 'area',
+               renderTo: "chart",
+               style: {
+                  fontFamily: "'Roboto', sans-serif",
+               },
+            },
+            title: {
+               text: 'Layer 7 DSTAT',
+               style: {
+                  fontSize: '20px',
+                  color: '#333',
+               }
+            },
+            xAxis: {
+               type: 'datetime',
+               dateTimeLabelFormats: {
+                  day: '%a'
+               },
+               labels: {
+                  style: {
+                     color: '#666',
+                  }
+               }
+            },
+            yAxis: {
+               title: {
+                  text: 'Requests/Sec',
+                  margin: 20,
+                  style: {
+                     color: '#666',
+                  }
+               },
+               labels: {
+                  style: {
+                     color: '#666',
+                  }
+               }
+            },
+            credits: {
+               enabled: false
+            },
+            exporting: {
+               enabled: false
+            },
+            legend: {
+               enabled: true,
+               itemStyle: {
+                  color: '#333',
+               }
+            },
+            plotOptions: {
+               area: {
+                  marker: {
+                     enabled: false
+                  },
+                  lineWidth: 2,
+                  states: {
+                     hover: {
+                        lineWidth: 3
+                     }
+                  },
+                  threshold: null
+               }
+            },
+            series: [{
+               type: 'area',
+               name: 'Total Requests',
+               color: {
+                  linearGradient: [0, 0, 0, 300],
+                  stops: [
+                     [0, '#FF69B4'],
+                     [1, 'rgba(255,105,180,0)']
+                  ]
+               },
+               data: []
+            },
+            {
+               type: 'area',
+               name: 'Blocked Requests',
+               color: {
+                  linearGradient: [0, 0, 0, 300],
+                  stops: [
+                     [0, '#3498db'],
+                     [1, 'rgba(52,152,219,0)']
+                  ]
+               },
+               data: []
+            }]
+         };
+
+         var chart = new Highcharts.Chart(options);
+
+         info.innerText = "Live Layer 7 DSTAT (Custom)";
+
+         function update() {
+            ajax = new XMLHttpRequest();
+            ajax.onload = function(e) {
+               var part = ajax.responseText.split(',');
+               var totalRequests = parseInt(part[0]);
+               var blockedRequests = parseInt(part[1]);
+               var series1 = chart.series[0];
+               var series2 = chart.series[1];
+               if (window.hajime !== true && totalRequests - window.previous > 0) {
+                  series1.addPoint([Math.floor(Date.now()), totalRequests - window.previous], true, series1.data.length > 40);
+                  series2.addPoint([Math.floor(Date.now()), blockedRequests], true, series2.data.length > 40);
+               }
+               window.hajime = false;
+               window.previous = totalRequests;
+            };
+            ajax.onerror = function(e) {
+               update();
+            };
+            ajax.ontimeout = function(e) {
+               update();
+            };
+            ajax.open("GET", "http://"+ location.host + "/get");
+            ajax.send();
+         }
+         setInterval(update, 1000);
+      };
+   </script>
+</body>
+  </html>
+  
